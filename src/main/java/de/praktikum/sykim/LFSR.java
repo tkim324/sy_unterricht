@@ -1,68 +1,73 @@
 package de.praktikum.sykim;
 
 public class LFSR {
-    private boolean[] lfsr;
-    private int tap;
 
-    /**
-     * @param args the command line arguments
-     */
+    // 16 bitㄴ
+    private static final int M = 16;
+    private static final int[] TAPS = {2, 7, 12, 16};
+
+    private final boolean[] bits = new boolean[M + 1];
+
+    public LFSR(int seed) {
+        for (int i = 0; i < M; i++) {
+            bits[i] = (((1 << i) & seed) >>> i) == 1;
+        }
+    }
+
+    /* generate a random int uniformly on the interval [-2^31 + 1, 2^31 - 1] */
+    public int nextInt() {
+        printBits();
+
+        // calculate the integer value from the registers
+        int next = 0;
+        for (int i = 0; i < M; i++) {
+            next |= (bits[i] ? 1 : 0) << i;
+        }
+
+        // allow for zero without allowing for -2^31
+        if (next < 0) next++;
+
+        // calculate the last register from all the preceding
+        bits[M] = false;
+        for (int i = 0; i < TAPS.length; i++) {
+            bits[M] ^= bits[M - TAPS[i]];
+        }
+
+        // shift all the registers
+        for (int i = 0; i < M; i++) {
+            bits[i] = bits[i + 1];
+        }
+
+        return next;
+    }
+
+    private void printBits() {
+        System.out.print(bits[M] ? 1 : 0);
+        System.out.print(" -> ");
+        for (int i = M - 1; i >= 0; i--) {
+            System.out.print(bits[i] ? 1 : 0);
+        }
+        System.out.println();
+    }
+
     public static void main(String[] args) {
-        LFSR lfsr = new LFSR("01101000010", 8);
 
-        System.out.println("Testing step()");
-        for (int i = 0; i < 10; i++) {
-            int bit = lfsr.step();
-            System.out.println(lfsr + " " + bit);
+        LFSR lfsr = new LFSR(0xFFFF);
+        // (a)
+        for (int i = 1; i <= 64; i++) {
+            int next = lfsr.nextInt();
         }
-        lfsr = new LFSR("01101000010", 8);
-        System.out.println("\nTesting generate()");
-        for (int i = 0; i < 10; i++) {
-            int r = lfsr.generate(5);
-            System.out.println(lfsr + " " + r);
-        }
+
+//        // (B)
+//        int i = 0;
+//        while(true){
+//            System.out.println("#" + i);
+//            int next = lfsr.nextInt();
+//            if(i > 1){
+//                if(next == 0xFFFF) break;
+//            }
+//            i++;
+//        }
     }
 
-    public LFSR(String seed, int tap) {
-        lfsr = new boolean[seed.length()];
-        this.tap = (seed.length() - 1) - tap;
-
-        for (int i = 0; i < seed.length(); i++) {
-            if (seed.charAt(i) == 48) {
-                lfsr[i] = false;
-            } else {
-                lfsr[i] = true;
-            }
-        }
-    }
-
-    public int step() {
-        boolean newBit = lfsr[0] ^ lfsr[tap];
-
-        for (int i = 0; i < lfsr.length - 1; i++) {
-            lfsr[i] = lfsr[i + 1];
-        }
-        lfsr[lfsr.length - 1] = newBit;
-
-        return newBit == false ? 0 : 1;
-    }
-
-    public int generate(int k) {
-        int temp = 0;
-
-        for (int i = 0; i < k; i++) {
-            temp *= 2;
-            temp += step();
-        }
-
-        return temp;
-    }
-
-    public String toString() {
-        String representation = "";
-        for (int i = 0; i < lfsr.length; i++) {
-            representation += lfsr[i] == false ? 0 : 1;
-        }
-        return representation;
-    }
 }
